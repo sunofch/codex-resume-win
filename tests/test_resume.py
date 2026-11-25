@@ -1,5 +1,6 @@
 """验证协议、Windows 路径处理及恢复参数，避免启动真实会话。"""
 from pathlib import Path
+import os
 import subprocess
 import sys
 import tempfile
@@ -29,6 +30,11 @@ class ResumeTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "模拟启动错误"):
             app.load_threads(self.server("exit"))
 
+    def test_early_exit_with_ascii_child_encoding(self):
+        with patch.dict(os.environ, {"PYTHONIOENCODING": "ascii:backslashreplace", "PYTHONUTF8": "0"}):
+            with self.assertRaisesRegex(RuntimeError, "模拟启动错误"):
+                app.load_threads(self.server("exit"))
+
     @unittest.skipUnless(sys.platform == "win32", "验证 Windows 路径规则")
     def test_directory_and_search(self):
         rows = [{"id": "x", "name": "中文 API", "cwd": "D:/Project/"},
@@ -50,13 +56,16 @@ class ResumeTests(unittest.TestCase):
 
     def test_npm_shim_uses_node(self):
         with tempfile.TemporaryDirectory() as directory:
-            shim = Path(directory) / "codex.cmd"
+            # 使用同一目录的另一种写法，模拟短名被解析为长名的场景。
+            (Path(directory) / "alias").mkdir()
+            alternate = Path(directory) / "alias" / ".."
+            shim = alternate / "codex.cmd"
             shim.touch()
-            entry = Path(directory) / "node_modules/@openai/codex/bin/codex.js"
+            entry = alternate / "node_modules/@openai/codex/bin/codex.js"
             entry.parent.mkdir(parents=True)
             entry.touch()
             with patch.object(app.shutil, "which", return_value="node.exe"):
-                self.assertEqual(app.resolve_codex(str(shim)), ["node.exe", str(entry)])
+                self.assertEqual(app.resolve_codex(str(shim)), ["node.exe", str(entry.resolve())])
 
 
 if __name__ == "__main__":

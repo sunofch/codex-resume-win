@@ -2,6 +2,10 @@
 import json
 import sys
 
+# 模拟真实 Codex 的 UTF-8 协议，不继承 CI 的本地输出编码。
+sys.stdout.reconfigure(encoding="utf-8")
+sys.stderr.reconfigure(encoding="utf-8")
+
 mode = sys.argv[1]
 if mode == "exit":
     print("模拟启动错误", file=sys.stderr)

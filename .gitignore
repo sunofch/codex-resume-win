@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+build/
+dist/
+*.egg-info/
+# 本机 Conda 启动脚本；公开安装使用包的命令入口。
+codex-resume.cmd
